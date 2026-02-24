@@ -19,7 +19,7 @@ COPY . /app
 WORKDIR /app
 
 # Expose port for render (environment variable PORT is used by Render)
-ENV PORT=8080
+# no explicit ENV port; Render sets PORT environment variable
 
 # Start the app with gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "app:app"]
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8080} app:app"]
