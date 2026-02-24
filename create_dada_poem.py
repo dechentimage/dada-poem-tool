@@ -158,7 +158,9 @@ def load_spacy_pipeline(lang: str) -> Optional[Language]:
         return nlp
     except Exception:
         return None
-
+      except SystemExit:
+            return None
+        
 
 def detect_language(text: str) -> str:
     """Heuristically guess whether the extracted text is German or English.
