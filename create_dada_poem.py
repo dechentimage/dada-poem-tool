@@ -108,22 +108,10 @@ except ImportError:
 
 def extract_text(image_path: str) -> str:
     """Perform OCR on the provided image and return the extracted text.
-
-    Parameters
-    ----------
-    image_path: str
-        Path to the image file containing the screenshot.
-
-    Returns
-    -------
-    str
-        A string of extracted text.  Newlines from the OCR output are
-        preserved to aid in later tokenization.
-    """
     try:
         with Image.open(image_path) as img:
             text = pytesseract.image_to_string(img)
-    except Exception as exc:
+    except (Exception, SystemExit) as exc:
         raise RuntimeError(f"Unable to open or process image '{image_path}': {exc}")
     return text
 
