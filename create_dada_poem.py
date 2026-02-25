@@ -159,7 +159,8 @@ def load_spacy_pipeline(lang: str) -> Optional[Language]:
     except Exception:
         return None
       except SystemExit:
-            return None
+            return None # handle spaCy SystemExit       
+        
         
 
 def detect_language(text: str) -> str:
