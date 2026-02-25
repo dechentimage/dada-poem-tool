@@ -119,19 +119,16 @@ def extract_text(image_path: str) -> str:
 def load_spacy_pipeline(lang: str) -> Optional[Language]:
     """Attempt to load a spaCy language pipeline for the given language code.
 
-    This helper returns `None` if spaCy is not installed or the requested
-    model cannot be loaded.
+       This function loads a spaCy language pipeline for the specified ISO language code.
 
-    Parameters
-    ----------
-    lang: str
-        A two‑letter ISO language code (e.g. "de" for German, "en" for English).
+    If spaCy is not installed or the requested model cannot be loaded, it returns None.
 
-    Returns
-    -------
-    Language | None
-        The loaded spaCy language object, or `None` if not available.
-    """
+    Args:
+        lang: Two-letter code such as "de" for German or "en" for English.
+
+    Returns:
+        Language | None: The spaCy language object or None if unavailable.
+    """"
     if spacy is None:
         return None
     model_names = {
