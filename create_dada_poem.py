@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
 """
 create_dada_poem.py
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~~
+~~~~~~~~~~~~~~~~~~~~
 
-This script implements a simple tool to generate a six‑line dadaistic poem from
+This script implements a simple tool to generate a six-line dadaistic poem from
 the visible text contained in a screenshot of a web page.  It expects the
-image to be a raster file (PNG, JPEG, etc.) and uses the open‑source OCR
+image to be a raster file (PNG, JPEG, etc.) and uses the open-source OCR
 engine Tesseract via the `pytesseract` library to extract text from the image.
 
 Once the text has been extracted, the script employs spaCy to perform
-part‑of‑speech (POS) tagging and filters the tokens to retain only nouns and
+part-of-speech (POS) tagging and filters the tokens to retain only nouns and
 verbs.  The pool of candidate words is then shuffled and arranged into
 exactly six lines to form a poem.  Each line contains a random number of
 words (between two and five) drawn from the pool.  If the pool of nouns
 and verbs is exhausted before six lines can be created, the words are
-re‑shuffled and reused as necessary.  The resulting poem is printed to
+re-shuffled and reused as necessary.  The resulting poem is printed to
 standard output.
 
 Requirements
@@ -24,7 +23,7 @@ This script depends on a few external packages and data files:
 
 * **Tesseract OCR** must be installed and available on the system `PATH`.  On
   most Linux distributions you can install it via your package manager
-  (e.g. `sudo apt‑get install tesseract‑ocr`).  On macOS you can use
+  (e.g. `sudo apt-get install tesseract-ocr`).  On macOS you can use
   Homebrew (`brew install tesseract`).  Windows users can download the
   installer from the Tesseract project page.
 * **pytesseract** is a Python wrapper around Tesseract and can be installed
@@ -46,7 +45,7 @@ containing your web page screenshot:
 
     python3 create_dada_poem.py /path/to/screenshot.png
 
-The script will output a six‑line poem using only nouns and verbs from the
+The script will output a six-line poem using only nouns and verbs from the
 extracted text.  If you wish to specify the language explicitly (so the
 correct spaCy model is loaded), you can use the `--lang` option:
 
@@ -62,7 +61,7 @@ heuristic fallback.
 Notes
 -----
 * This tool is designed to generate poetic output rather than accurate
-  grammatical sentences.  The poem may be surprising or nonsensical – this
+  grammatical sentences.  The poem may be surprising or nonsensical - this
   playful quality is intentional and fits the Dada aesthetic.
 * The script works best when the uploaded screenshot contains clear and
   legible text.  Images with noisy backgrounds or small fonts may yield
@@ -109,27 +108,60 @@ except ImportError:
 
 def extract_text(image_path: str) -> str:
     """Perform OCR on the provided image and return the extracted text.
+
+    Parameters
+    ----------
+    image_path: str
+        Path to the image file containing the screenshot.
+
+    Returns
+    -------
+    str
+        A string of extracted text.  Newlines from the OCR output are
+        preserved to aid in later tokenization.
+
+    Raises
+    ------
+    RuntimeError
+        If the image cannot be opened or OCR fails.  Notably, Tesseract
+        occasionally calls ``sys.exit()`` on severe errors, which would
+        normally terminate the entire process.  This function traps such
+        ``SystemExit`` exceptions and re-raises them as ``RuntimeError`` so
+        that callers can handle the failure gracefully.
+    """
     try:
+        # Attempt to open the image.  Any IO errors will be surfaced here.
         with Image.open(image_path) as img:
-            text = pytesseract.image_to_string(img)
-    except (Exception, SystemExit) as exc:
+            try:
+                # Perform OCR.  On certain errors Tesseract may call
+                # ``sys.exit()``, which raises ``SystemExit``.  We catch it
+                # explicitly and convert it into a RuntimeError so that the
+                # calling code does not exit the entire application.
+                text = pytesseract.image_to_string(img)
+            except SystemExit:
+                raise RuntimeError(
+                    f"Tesseract exited unexpectedly while processing '{image_path}'."
+                )
+    except Exception as exc:
+        # Wrap any other exception (including PIL and pytesseract errors) as a
+        # RuntimeError to unify error handling at the call site.
         raise RuntimeError(f"Unable to open or process image '{image_path}': {exc}")
     return text
 
 
 def load_spacy_pipeline(lang: str) -> Optional[Language]:
-    """Attempt to load a spaCy language pipeline for the given language code.
+    """Load a spaCy language pipeline for the specified language code if available.
 
-       This function loads a spaCy language pipeline for the specified ISO language code.
-
-    If spaCy is not installed or the requested model cannot be loaded, it returns None.
+    This helper returns ``None`` if spaCy is not installed or if the requested
+    model cannot be loaded.  Only basic ASCII characters are used in this
+    docstring to avoid encoding issues during deployment.
 
     Args:
-        lang: Two-letter code such as "de" for German or "en" for English.
+        lang: A two-letter ISO language code (e.g. "de" for German, "en" for English).
 
     Returns:
-        Language | None: The spaCy language object or None if unavailable.
-    """"
+        Optional[Language]: The loaded spaCy language object or ``None``.
+    """
     if spacy is None:
         return None
     model_names = {
@@ -142,12 +174,14 @@ def load_spacy_pipeline(lang: str) -> Optional[Language]:
     try:
         nlp = spacy.load(model_name)
         return nlp
+    except SystemExit:
+        # spaCy may call sys.exit() if the model is incompatible or missing.
+        # Catch this to prevent the entire application from exiting and
+        # gracefully fall back to heuristic extraction.
+        return None
     except Exception:
         return None
-      except SystemExit:
-            return None # handle spaCy SystemExit       
-        
-        
+
 
 def detect_language(text: str) -> str:
     """Heuristically guess whether the extracted text is German or English.
@@ -180,7 +214,7 @@ def extract_nouns_verbs_spacy(text: str, nlp: Language) -> List[str]:
     Parameters
     ----------
     text: str
-        The OCR‑extracted text.
+        The OCR-extracted text.
     nlp: Language
         A loaded spaCy language pipeline.
 
@@ -203,7 +237,7 @@ def extract_nouns_verbs_spacy(text: str, nlp: Language) -> List[str]:
 
 
 def extract_nouns_verbs_heuristic(text: str) -> List[str]:
-    """Fallback heuristic to extract noun‑ and verb‑like words from text.
+    """Fallback heuristic to extract noun- and verb-like words from text.
 
     When no spaCy model is available, this function attempts a rough
     approximation.  For German, any word starting with an uppercase letter is
@@ -216,7 +250,7 @@ def extract_nouns_verbs_heuristic(text: str) -> List[str]:
     Parameters
     ----------
     text: str
-        The OCR‑extracted text.
+        The OCR-extracted text.
 
     Returns
     -------
@@ -265,7 +299,7 @@ def assemble_poem(words: Iterable[str], lines: int = 6) -> List[str]:
     if not words_list:
         return ["(keine Wörter gefunden)"] * lines
     result: List[str] = []
-    # Determine an approximate number of words per line.  Aim for 2–5 words.
+    # Determine an approximate number of words per line.  Aim for 2-5 words.
     segment_size = max(2, min(5, len(words_list) // lines or 2))
     idx = 0
     for _ in range(lines):
