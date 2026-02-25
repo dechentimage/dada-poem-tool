@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 create_dada_poem.py
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~
 
 This script implements a simple tool to generate a six‑line dadaistic poem from
 the visible text contained in a screenshot of a web page.  It expects the
